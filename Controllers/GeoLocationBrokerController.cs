@@ -25,17 +25,10 @@ namespace ApiBroker.Controllers
                 _logger.LogError("Invalid IP Address");
                 return BadRequest("Invalid IP Address");
             }
-
-            var dummyResponse = new
-            {
-                IP = ipAddress,
-                Country = "India",
-                City = "Mumbai"
-            };
             
-            await _apiBrokerLogic.GetGeoLocationLogic(ipAddress);
+            var response = await _apiBrokerLogic.GetGeoLocationLogic(ipAddress);
 
-            return Ok(dummyResponse);
+            return Ok(response);
         }
     }
 }

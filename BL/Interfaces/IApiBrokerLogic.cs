@@ -1,7 +1,9 @@
+using ApiBroker.DTOs;
+
 namespace ApiBroker.BL.Interfaces
 {
     public interface IApiBrokerLogic
     {
-        Task<bool> GetGeoLocationLogic(string ipAddress);
+        Task<GeoLocationBrokerResponseDTO> GetGeoLocationLogic(string ipAddress);
     }
 }
