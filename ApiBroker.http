@@ -1,0 +1,6 @@
+@ApiBroker_HostAddress = http://localhost:5264
+
+GET {{ApiBroker_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
