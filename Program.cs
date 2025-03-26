@@ -1,4 +1,7 @@
 
+using ApiBroker.BL;
+using ApiBroker.BL.Interfaces;
+
 namespace ApiBroker
 {
     public class Program
@@ -9,13 +12,16 @@ namespace ApiBroker
 
             builder.Services.AddControllers();
 
+            // doing dependency injection
+            builder.Services.AddHttpClient<IHttpClientWrapper, HttpClientWrapper>();
+            builder.Services.AddScoped<IApiBrokerLogic, ApiBrokerLogic>();
+
             var app = builder.Build();
 
             app.UseAuthorization();
             app.MapControllers();
 
             app.Run();
-
         }
     }
 }

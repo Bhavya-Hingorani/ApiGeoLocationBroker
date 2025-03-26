@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+using ApiBroker.BL.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiBroker.Controllers
@@ -7,14 +9,16 @@ namespace ApiBroker.Controllers
     public class GeoLocationBrokerController : ControllerBase
     {
         private readonly ILogger<GeoLocationBrokerController> _logger;
+        private readonly IApiBrokerLogic _apiBrokerLogic;
 
-        public GeoLocationBrokerController(ILogger<GeoLocationBrokerController> logger)
+        public GeoLocationBrokerController(IApiBrokerLogic apiBrokerLogic, ILogger<GeoLocationBrokerController> logger)
         {
+            _apiBrokerLogic = apiBrokerLogic;
             _logger = logger;
         }
 
         [HttpGet("get/")]
-        public IActionResult GetGeoLocationUsingBroker([FromQuery] string ipAddress)
+        public async Task<IActionResult> GetGeoLocationUsingBroker([FromQuery] string ipAddress)
         {
             if (string.IsNullOrWhiteSpace(ipAddress))
             {
@@ -28,6 +32,8 @@ namespace ApiBroker.Controllers
                 Country = "India",
                 City = "Mumbai"
             };
+            
+            await _apiBrokerLogic.GetGeoLocationLogic(ipAddress);
 
             return Ok(dummyResponse);
         }
