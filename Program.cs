@@ -15,6 +15,7 @@ namespace ApiBroker
             // doing dependency injection
             builder.Services.AddHttpClient<IHttpClientWrapper, HttpClientWrapper>();
             builder.Services.AddScoped<IApiBrokerLogic, ApiBrokerLogic>();
+            builder.Services.AddSingleton<IApiVitalsLogic, ApiVitalsLogic>();
 
             var app = builder.Build();
 
