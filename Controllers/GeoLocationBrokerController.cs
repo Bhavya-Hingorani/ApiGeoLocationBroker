@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using ApiBroker.BL.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using ApiBroker.Utils;
 
 namespace ApiBroker.Controllers
 {
@@ -20,14 +21,20 @@ namespace ApiBroker.Controllers
         [HttpGet("get/")]
         public async Task<IActionResult> GetGeoLocationUsingBroker([FromQuery] string ipAddress)
         {
-            if (string.IsNullOrWhiteSpace(ipAddress) || !System.Net.IPAddress.TryParse(ipAddress, out _))
+            var (isValid, errMsg) = Validation.IsRequestValid(ipAddress);
+            if (!isValid)
             {
-                _logger.LogError("Invalid IP Address format: {Ip}", ipAddress);
-                return BadRequest("Invalid IP Address");
+                _logger.LogError(errMsg);
+                return BadRequest(errMsg);
             }
 
-            var response = await _apiBrokerLogic.GetGeoLocationLogic(ipAddress, 0);
-            return Ok(response);
+            var response = await _apiBrokerLogic.GetGeoLocationLogic(ipAddress);
+            if(response.IsValid)
+            {
+                return Ok(response);
+            }
+            _logger.LogWarning($"Broker failed to resolve IP: {ipAddress}");
+            return StatusCode(502, response);
         }
     }
 }

@@ -23,38 +23,43 @@ namespace ApiBroker.BL
 
         public GeoLocationServiceProvider? GetProvider()
         {
+            int start;
             lock (_lock)
             {
-                int start = _pointer;
-
-                // Pass 1: Look for GREEN
-                for (int i = 0; i < _providers.Count; i++)
-                {
-                    var index = (_pointer + i) % _providers.Count;
-                    var candidate = _providers[index];
-
-                    if (IsGeoLocationProvicerAvailable(candidate, ApiVitalsState.GREEN))
-                    {
-                        _pointer = (index + 1) % _providers.Count;
-                        return candidate;
-                    }
-                }
-
-                // Pass 2: Look for ORANGE
-                for (int i = 0; i < _providers.Count; i++)
-                {
-                    var index = (_pointer + i) % _providers.Count;
-                    var candidate = _providers[index];
-
-                    if (IsGeoLocationProvicerAvailable(candidate, ApiVitalsState.ORANGE))
-                    {
-                        _pointer = (index + 1) % _providers.Count;
-                        return candidate;
-                    }
-                }
-
-                return null;
+                start = _pointer;
             }
+            // Pass 1: Look for GREEN
+            for (int i = 0; i < _providers.Count; i++)
+            {
+                var index = (start + i) % _providers.Count;
+                var candidate = _providers[index];
+
+                if (IsGeoLocationProvicerAvailable(candidate, ApiVitalsState.GREEN))
+                {
+                    lock (_lock)
+                    {
+                        _pointer = (index + 1) % _providers.Count;
+                    }
+                    return candidate;
+                }
+            }
+
+            // Pass 2: Look for ORANGE
+            for (int i = 0; i < _providers.Count; i++)
+            {
+                var index = (start + i) % _providers.Count;
+                var candidate = _providers[index];
+
+                if (IsGeoLocationProvicerAvailable(candidate, ApiVitalsState.ORANGE))
+                {
+                    lock (_lock)
+                    {
+                        _pointer = (index + 1) % _providers.Count;
+                    }
+                    return candidate;
+                }
+            }
+            return null;
         }
 
         private bool IsGeoLocationProvicerAvailable(GeoLocationServiceProvider candidate, ApiVitalsState acceptableState)

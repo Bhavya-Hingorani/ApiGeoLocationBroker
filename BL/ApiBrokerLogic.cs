@@ -1,8 +1,7 @@
-using System.Text.Json.Serialization;
 using ApiBroker.BL.Interfaces;
 using ApiBroker.DTOs;
-using ApiBroker.Entities;
 using ApiBroker.Entities.Enum;
+using ApiBroker.Utils;
 using Newtonsoft.Json;
 
 namespace ApiBroker.BL
@@ -12,29 +11,36 @@ namespace ApiBroker.BL
         private readonly IHttpClientWrapper _httpClientWrapper;
         private readonly IApiVitalsLogic _apiVitalsLogic;
         private readonly ICircularProviderSelector _circularProviderSelector;
-        private readonly int MAX_ATTEMPTS = 3;
+        private readonly IConfiguration _config;
+        private readonly ILogger<ApiBrokerLogic> _logger;
 
-        public ApiBrokerLogic(IHttpClientWrapper httpClientWrapper, IApiVitalsLogic apiVitalsLogic, ICircularProviderSelector circularProviderSelector)
+        public ApiBrokerLogic(IHttpClientWrapper httpClientWrapper, IApiVitalsLogic apiVitalsLogic, ICircularProviderSelector circularProviderSelector, IConfiguration config, ILogger<ApiBrokerLogic> logger)
         {
             _httpClientWrapper = httpClientWrapper;
             _apiVitalsLogic = apiVitalsLogic;
             _circularProviderSelector = circularProviderSelector;
+            _config = config;
+            _logger = logger;
         }
 
-        public async Task<GeoLocationBrokerResponseDTO> GetGeoLocationLogic(string ipAddress, int attemps)
+        public async Task<GeoLocationBrokerResponseDTO> GetGeoLocationLogic(string ipAddress)
         {
-            try{
-                attemps++;
-                var response = await TryGetGeoLocationLogic(ipAddress);
-                return response;
-            }catch(Exception _)
+            int attempts = 0;
+            while(attempts < Constants.MAX_ATTEMPS)
             {
-                if(attemps >= MAX_ATTEMPTS )
+                try
                 {
-                    return new(ipAddress, "", "");
+                    return await TryGetGeoLocationLogic(ipAddress);
                 }
-                return await GetGeoLocationLogic(ipAddress, attemps);
+                catch(Exception ex)
+                {
+                    _logger.LogWarning(ex.Message);
+                    attempts++;
+                }            
             }
+            string msg = $"attempts exceeding while getting geoLocation for {ipAddress}";
+            _logger.LogError(msg);
+            return new(ipAddress, string.Empty, string.Empty, msg);
         }
 
         public async Task<GeoLocationBrokerResponseDTO> TryGetGeoLocationLogic(string ipAddress)
@@ -44,7 +50,7 @@ namespace ApiBroker.BL
             {
                 throw new Exception("No providers available");
             }
-            string requestUrl = GetProviderRequest((GeoLocationServiceProvider)provider) + $"?ipAddress={ipAddress}";
+            string requestUrl = GetProviderRequest((GeoLocationServiceProvider)provider, ipAddress) ;
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var response = await _httpClientWrapper.GetAsync(requestUrl);
@@ -57,23 +63,29 @@ namespace ApiBroker.BL
 
             if(isError)
             {
-                throw new Exception("Api call error");
+                throw new Exception("Error in api call");
             }
             
-            var result = JsonConvert.DeserializeObject<GeoLocationBrokerResponseDTO>(response);
-            return result ?? throw new Exception("Could not deserialize response");;
+            var responseDTO = JsonConvert.DeserializeObject<GeoLocationVendorResponseDTO>(response);
+            if(responseDTO == null)
+            {
+                throw new Exception("Could not deserialize response");
+            }
+            GeoLocationBrokerResponseDTO result = new(ipAddress, responseDTO.CountryName, responseDTO.CityName);
+            result.IsValid = true;
+            return result;
         }
 
-        private string GetProviderRequest(GeoLocationServiceProvider provider)
+        private string GetProviderRequest(GeoLocationServiceProvider provider, string ipAddress)
         {
             switch(provider)
             {
                 case GeoLocationServiceProvider.VENDOR_ONE:
-                    return "https://localhost:7185/api/vendor1/get/location/";
+                    return _config["ApiSettings:BaseUrl"] + _config["ApiSettings:VendorOneAddress"] + $"?ipAddress={ipAddress}";
                 case GeoLocationServiceProvider.VENDOR_TWO:
-                    return "https://localhost:7185/api/vendor2/get/location/";
+                    return _config["ApiSettings:BaseUrl"] + _config["ApiSettings:VendorTwoAddress"] + $"?ipAddress={ipAddress}";
                 case GeoLocationServiceProvider.VENDOR_THREE:
-                    return "https://localhost:7185/api/vendor3/get/location/";
+                    return _config["ApiSettings:BaseUrl"] + _config["ApiSettings:VendorThreeAddress"] + $"?ipAddress={ipAddress}";
                 default:
                     return string.Empty;
             }

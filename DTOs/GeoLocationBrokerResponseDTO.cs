@@ -6,18 +6,22 @@ namespace ApiBroker.DTOs
     {
         public GeoLocationBrokerResponseDTO(string ipAddress, string country, string city)
         {
-            IpAddress = ipAddress;
-            CountryName = country;
-            CityName = city;
+            IsValid = false;
+            GeoLocationVendorResponseDTO = new GeoLocationVendorResponseDTO(ipAddress, country, city);
         }
 
-        [JsonProperty("ip")]
-        public string IpAddress {get; set;}
+        public GeoLocationBrokerResponseDTO(string ipAddress, string country, string city, string msg)
+        {
+            IsValid = false;
+            ResponseMessage = msg;
+            GeoLocationVendorResponseDTO = new GeoLocationVendorResponseDTO(ipAddress, country, city);
+        }
 
-        [JsonProperty("countryName")]
-        public string CountryName {get; set;}
-
-        [JsonProperty("cityName")]
-        public string CityName {get; set;}
+        [JsonProperty("isValid")]
+        public bool IsValid { get; set; }
+        [JsonProperty("responseMessage")]
+        public string ResponseMessage { get; set; }
+        [JsonProperty("geoLocationVendorResponse")]
+        public GeoLocationVendorResponseDTO GeoLocationVendorResponseDTO { get; set; }
     }
 }
