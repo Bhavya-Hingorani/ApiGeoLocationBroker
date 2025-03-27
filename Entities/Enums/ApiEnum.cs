@@ -2,8 +2,9 @@ namespace ApiBroker.Entities.Enum
 {
     public enum GeoLocationServiceProvider
     {
-        VENDOR_ONE = 0,
-        VENDOR_TWO = 1,
-        VENDOR_THREE = 2,
+        INVALID_VENDOR = 0,
+        VENDOR_ONE = 1,
+        VENDOR_TWO = 2,
+        VENDOR_THREE = 3,
     }
 }
