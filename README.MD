@@ -58,7 +58,7 @@ A good response:
 ## 5. How to Run
 
 1. Clone the repository: https://github.com/Bhavya-Hingorani/ApiGeoLocationBroker.git
-2. Open the project in Visual Studio Code or Visual Studio.
+2. Open the project in Visual Studio Code.
 3. From the Run menu, launch the API Broker project.
 
 ---
