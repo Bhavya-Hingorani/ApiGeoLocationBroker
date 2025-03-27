@@ -69,3 +69,13 @@ A good response:
 - **Sample Request**: https://localhost:7185/api/location-broker/get/?ipAddress=124.65.90.22
 
 ---
+
+## Note
+
+All threshold and cooldown values used for determining provider health are kept so so that the system can be tested easily.
+
+These values are not meant to simulate real-world production behavior — they’re just configured to help me observe state transitions quickly.
+
+If you're trying out different test cases, you should tweak these values in the `Constants.cs` file depending on what behavior you're trying to observe. 
+
+To make it easier to test.

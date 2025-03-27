@@ -77,6 +77,7 @@ namespace ApiBroker.BL
             }
             GeoLocationBrokerResponseDTO result = new(ipAddress, responseDTO.CountryName, responseDTO.CityName);
             result.IsValid = true;
+            Console.WriteLine($"Provider picked: {(int)provider}"); // only for ease of testing 
             return result;
         }
 
