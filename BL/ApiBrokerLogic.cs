@@ -12,6 +12,7 @@ namespace ApiBroker.BL
         private readonly IHttpClientWrapper _httpClientWrapper;
         private readonly IApiVitalsLogic _apiVitalsLogic;
         private readonly ICircularProviderSelector _circularProviderSelector;
+        private readonly int MAX_ATTEMPTS = 3;
 
         public ApiBrokerLogic(IHttpClientWrapper httpClientWrapper, IApiVitalsLogic apiVitalsLogic, ICircularProviderSelector circularProviderSelector)
         {
@@ -20,7 +21,23 @@ namespace ApiBroker.BL
             _circularProviderSelector = circularProviderSelector;
         }
 
-        public async Task<GeoLocationBrokerResponseDTO> GetGeoLocationLogic(string ipAddress)
+        public async Task<GeoLocationBrokerResponseDTO> GetGeoLocationLogic(string ipAddress, int attemps)
+        {
+            try{
+                attemps++;
+                var response = await TryGetGeoLocationLogic(ipAddress);
+                return response;
+            }catch(Exception _)
+            {
+                if(attemps >= MAX_ATTEMPTS )
+                {
+                    return new(ipAddress, "", "");
+                }
+                return await GetGeoLocationLogic(ipAddress, attemps);
+            }
+        }
+
+        public async Task<GeoLocationBrokerResponseDTO> TryGetGeoLocationLogic(string ipAddress)
         {
             var provider = _circularProviderSelector.GetProvider();
             if(provider == null || provider == GeoLocationServiceProvider.INVALID_VENDOR)
@@ -40,11 +57,11 @@ namespace ApiBroker.BL
 
             if(isError)
             {
-                return new(ipAddress, "", "");
+                throw new Exception("Api call error");
             }
             
             var result = JsonConvert.DeserializeObject<GeoLocationBrokerResponseDTO>(response);
-            return result ?? new(ipAddress, "", "");
+            return result ?? throw new Exception("Could not deserialize response");;
         }
 
         private string GetProviderRequest(GeoLocationServiceProvider provider)

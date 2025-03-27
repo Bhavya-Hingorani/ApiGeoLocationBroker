@@ -26,7 +26,7 @@ namespace ApiBroker.Controllers
                 return BadRequest("Invalid IP Address");
             }
 
-            var response = await _apiBrokerLogic.GetGeoLocationLogic(ipAddress);
+            var response = await _apiBrokerLogic.GetGeoLocationLogic(ipAddress, 0);
             return Ok(response);
         }
     }
