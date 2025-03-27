@@ -9,5 +9,6 @@ namespace ApiBroker.BL.Interfaces
         public Dictionary<GeoLocationServiceProvider, ServiceProviderMetrics> GetAllApiVitalsStateValues();
         public ServiceProviderMetrics GetApiVitalsStateValue(GeoLocationServiceProvider key);
         public void SetApiVitalsStateValue(GeoLocationServiceProvider key, ServiceProviderMetrics value);
+        public void RecordResponse(GeoLocationServiceProvider provider, long responseTimeMs, bool isError);
     }
 }

@@ -6,16 +6,20 @@ using ApiBroker.Entities.Enum;
 public class ApiVitalsLogic : IApiVitalsLogic
 {
     private readonly ConcurrentDictionary<GeoLocationServiceProvider, ServiceProviderMetrics> _apiVitalsData;
-    private readonly ServiceProviderMetrics InitialServiceProviderMetrics = new(){
-        ApiVitalsState = ApiVitalsState.GREEN
-    };
 
     public ApiVitalsLogic()
     {
         _apiVitalsData = new();
-        _apiVitalsData[GeoLocationServiceProvider.VENDOR_ONE] = InitialServiceProviderMetrics;
-        _apiVitalsData[GeoLocationServiceProvider.VENDOR_TWO] = InitialServiceProviderMetrics;
-        _apiVitalsData[GeoLocationServiceProvider.VENDOR_THREE] = InitialServiceProviderMetrics;
+        _apiVitalsData[GeoLocationServiceProvider.VENDOR_ONE] = GetInitialMetrics();
+        _apiVitalsData[GeoLocationServiceProvider.VENDOR_TWO] = GetInitialMetrics();
+        _apiVitalsData[GeoLocationServiceProvider.VENDOR_THREE] = GetInitialMetrics();
+    }
+
+    private ServiceProviderMetrics GetInitialMetrics()
+    {
+        return new(){
+            ApiVitalsState = ApiVitalsState.GREEN
+        };
     }
 
     public Dictionary<GeoLocationServiceProvider, ServiceProviderMetrics> GetAllApiVitalsStateValues()
@@ -63,31 +67,48 @@ public class ApiVitalsLogic : IApiVitalsLogic
         metrics.ServiceProviderVitals.AvgErrorRate = totalRequests > 0 ? (float)totalErrors / totalRequests : 0f;
 
         // Update state based on thresholds
-        metrics.ApiVitalsState = CalculateVitalsState(metrics);
+        metrics.ApiVitalsState = CalculateVitalsState(provider, metrics);
     }
 
-    private ApiVitalsState CalculateVitalsState(ServiceProviderMetrics metrics)
+    private ApiVitalsState CalculateVitalsState(GeoLocationServiceProvider provider, ServiceProviderMetrics metrics)
     {
         // rate limit reached
         if(metrics.RequestsLastMinute >= 10) // TODO :- use CONSTANT value here
         {
+            ScheduleCooldown(provider, TimeSpan.FromMinutes(1));
             return ApiVitalsState.RED;
         }
         // too many errors
         if (metrics.ServiceProviderVitals.AvgErrorRate >= 1f)
         {
+            ScheduleCooldown(provider, TimeSpan.FromMinutes(1));
             return ApiVitalsState.RED;
         }
         // callable but errors too high to be first consideration
         if (metrics.ServiceProviderVitals.AvgErrorRate >= 0.3f)
         {
+            ScheduleCooldown(provider, TimeSpan.FromMinutes(1));
             return ApiVitalsState.ORANGE;
         }
         // callable but response time is too high
         if (metrics.ServiceProviderVitals.AvgResponseTime > 500)
         {
+            ScheduleCooldown(provider, TimeSpan.FromMinutes(1));
             return ApiVitalsState.ORANGE;
         }
         return ApiVitalsState.GREEN;
+    }
+
+    private void ScheduleCooldown(GeoLocationServiceProvider provider, TimeSpan cooldownDuration)
+    {
+        Task.Run(async () =>
+        {
+            await Task.Delay(cooldownDuration);
+
+            if (_apiVitalsData.TryGetValue(provider, out var metrics))
+            {
+                metrics.ApiVitalsState = ApiVitalsState.GREEN;
+            }
+        });
     }
 }

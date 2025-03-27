@@ -20,31 +20,42 @@ namespace ApiBroker.BL
 
         public async Task<GeoLocationBrokerResponseDTO> GetGeoLocationLogic(string ipAddress)
         {
-            string requestUrl = DynamicRouting() + $"?ipAddress={ipAddress}";
+            var provider = DynamicRouting();
+            string requestUrl = GetProviderRequest(provider) + $"?ipAddress={ipAddress}";
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var response = await _httpClientWrapper.GetAsync(requestUrl);
-            if(response == null || string.IsNullOrWhiteSpace(response))
+            stopwatch.Stop();
+            
+            bool isError = response == null || string.IsNullOrWhiteSpace(response);
+            long responseTime = stopwatch.ElapsedMilliseconds;
+            
+            _apiVitalsLogic.RecordResponse(provider, responseTime, isError);
+
+            if(isError)
             {
                 return new(ipAddress, "", "");
             }
+            
             var result = JsonConvert.DeserializeObject<GeoLocationBrokerResponseDTO>(response);
             return result ?? new(ipAddress, "", "");
         }
 
-        private string DynamicRouting()
+        private GeoLocationServiceProvider DynamicRouting()
         {
             var allProviders = _apiVitalsLogic.GetAllApiVitalsStateValues();
 
             var greenProvider = allProviders.FirstOrDefault(kv => (kv.Value ?? new()).ApiVitalsState == ApiVitalsState.GREEN).Key;
             if (greenProvider != default)
-                return GetProviderRequest(greenProvider);
+                return greenProvider;
 
             var orangeProvider = allProviders.FirstOrDefault(kv => (kv.Value ?? new()).ApiVitalsState == ApiVitalsState.ORANGE).Key;
             if(orangeProvider != default)
             {
-                return GetProviderRequest(orangeProvider);
+                return orangeProvider;
             }
             // LOG error here
-            return string.Empty;
+            return GeoLocationServiceProvider.INVALID_VENDOR;
         }
 
         private string GetProviderRequest(GeoLocationServiceProvider provider)

@@ -6,9 +6,9 @@ namespace ApiBroker.Entities
     public class ServiceProviderMetrics
     {
         public ServiceProviderMetrics(){
-            ApiVitalsState = ApiVitalsState.RED;
+            ApiVitalsState = ApiVitalsState.GREEN;
             ServiceProviderVitals = new();
-            RequestsLastMinute = int.MaxValue;
+            RequestsLastMinute = 0;
 
             ResponseTimeRecords = new ConcurrentQueue<(DateTime Timestamp, long ResponseTimeMs)>();
             ErrorTimestamps = new ConcurrentQueue<DateTime>();
