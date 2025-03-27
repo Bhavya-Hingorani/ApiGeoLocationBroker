@@ -6,6 +6,6 @@ namespace ApiBroker.BL.Interfaces
 {
     public interface ICircularProviderSelector
     {
-        public GeoLocationServiceProvider? GetProvider();
+        public GeoLocationServiceProvider? GetProvider(HashSet<GeoLocationServiceProvider>? exclude);
     }
 }

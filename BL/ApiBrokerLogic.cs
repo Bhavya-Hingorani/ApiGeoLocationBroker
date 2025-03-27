@@ -26,11 +26,13 @@ namespace ApiBroker.BL
         public async Task<GeoLocationBrokerResponseDTO> GetGeoLocationLogic(string ipAddress)
         {
             int attempts = 0;
+            var failedProviders = new HashSet<GeoLocationServiceProvider>();
+
             while(attempts < Constants.MAX_ATTEMPS)
             {
                 try
                 {
-                    return await TryGetGeoLocationLogic(ipAddress);
+                    return await TryGetGeoLocationLogic(ipAddress, failedProviders);
                 }
                 catch(Exception ex)
                 {
@@ -43,9 +45,9 @@ namespace ApiBroker.BL
             return new(ipAddress, string.Empty, string.Empty, msg);
         }
 
-        public async Task<GeoLocationBrokerResponseDTO> TryGetGeoLocationLogic(string ipAddress)
+        public async Task<GeoLocationBrokerResponseDTO> TryGetGeoLocationLogic(string ipAddress, HashSet<GeoLocationServiceProvider> exclude)
         {
-            var provider = _circularProviderSelector.GetProvider();
+            var provider = _circularProviderSelector.GetProvider(exclude);
             if(provider == null || provider == GeoLocationServiceProvider.INVALID_VENDOR)
             {
                 throw new Exception("No providers available");
@@ -63,12 +65,14 @@ namespace ApiBroker.BL
 
             if(isError)
             {
+                exclude.Add(provider.Value);
                 throw new Exception("Error in api call");
             }
             
             var responseDTO = JsonConvert.DeserializeObject<GeoLocationVendorResponseDTO>(response);
             if(responseDTO == null)
             {
+                exclude.Add(provider.Value);
                 throw new Exception("Could not deserialize response");
             }
             GeoLocationBrokerResponseDTO result = new(ipAddress, responseDTO.CountryName, responseDTO.CityName);
