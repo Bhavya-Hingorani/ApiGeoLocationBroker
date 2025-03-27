@@ -20,14 +20,13 @@ namespace ApiBroker.Controllers
         [HttpGet("get/")]
         public async Task<IActionResult> GetGeoLocationUsingBroker([FromQuery] string ipAddress)
         {
-            if (string.IsNullOrWhiteSpace(ipAddress))
+            if (string.IsNullOrWhiteSpace(ipAddress) || !System.Net.IPAddress.TryParse(ipAddress, out _))
             {
-                _logger.LogError("Invalid IP Address");
+                _logger.LogError("Invalid IP Address format: {Ip}", ipAddress);
                 return BadRequest("Invalid IP Address");
             }
-            
-            var response = await _apiBrokerLogic.GetGeoLocationLogic(ipAddress);
 
+            var response = await _apiBrokerLogic.GetGeoLocationLogic(ipAddress);
             return Ok(response);
         }
     }
