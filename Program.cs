@@ -14,6 +14,7 @@ namespace ApiBroker
 
             // doing dependency injection
             builder.Services.AddHttpClient<IHttpClientWrapper, HttpClientWrapper>();
+            builder.Services.AddSingleton<ICircularProviderSelector, CircularProviderSelector>();
             builder.Services.AddScoped<IApiBrokerLogic, ApiBrokerLogic>();
             builder.Services.AddSingleton<IApiVitalsLogic, ApiVitalsLogic>();
 

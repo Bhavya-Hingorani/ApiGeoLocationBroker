@@ -11,17 +11,23 @@ namespace ApiBroker.BL
     {
         private readonly IHttpClientWrapper _httpClientWrapper;
         private readonly IApiVitalsLogic _apiVitalsLogic;
+        private readonly ICircularProviderSelector _circularProviderSelector;
 
-        public ApiBrokerLogic(IHttpClientWrapper httpClientWrapper, IApiVitalsLogic apiVitalsLogic)
+        public ApiBrokerLogic(IHttpClientWrapper httpClientWrapper, IApiVitalsLogic apiVitalsLogic, ICircularProviderSelector circularProviderSelector)
         {
             _httpClientWrapper = httpClientWrapper;
             _apiVitalsLogic = apiVitalsLogic;
+            _circularProviderSelector = circularProviderSelector;
         }
 
         public async Task<GeoLocationBrokerResponseDTO> GetGeoLocationLogic(string ipAddress)
         {
-            var provider = DynamicRouting();
-            string requestUrl = GetProviderRequest(provider) + $"?ipAddress={ipAddress}";
+            var provider = _circularProviderSelector.GetProvider();
+            if(provider == null || provider == GeoLocationServiceProvider.INVALID_VENDOR)
+            {
+                throw new Exception("No providers available");
+            }
+            string requestUrl = GetProviderRequest((GeoLocationServiceProvider)provider) + $"?ipAddress={ipAddress}";
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var response = await _httpClientWrapper.GetAsync(requestUrl);
@@ -30,7 +36,7 @@ namespace ApiBroker.BL
             bool isError = response == null || string.IsNullOrWhiteSpace(response);
             long responseTime = stopwatch.ElapsedMilliseconds;
             
-            _apiVitalsLogic.RecordResponse(provider, responseTime, isError);
+            _apiVitalsLogic.RecordResponse((GeoLocationServiceProvider)provider, responseTime, isError);
 
             if(isError)
             {
@@ -39,23 +45,6 @@ namespace ApiBroker.BL
             
             var result = JsonConvert.DeserializeObject<GeoLocationBrokerResponseDTO>(response);
             return result ?? new(ipAddress, "", "");
-        }
-
-        private GeoLocationServiceProvider DynamicRouting()
-        {
-            var allProviders = _apiVitalsLogic.GetAllApiVitalsStateValues();
-
-            var greenProvider = allProviders.FirstOrDefault(kv => (kv.Value ?? new()).ApiVitalsState == ApiVitalsState.GREEN).Key;
-            if (greenProvider != default)
-                return greenProvider;
-
-            var orangeProvider = allProviders.FirstOrDefault(kv => (kv.Value ?? new()).ApiVitalsState == ApiVitalsState.ORANGE).Key;
-            if(orangeProvider != default)
-            {
-                return orangeProvider;
-            }
-            // LOG error here
-            return GeoLocationServiceProvider.INVALID_VENDOR;
         }
 
         private string GetProviderRequest(GeoLocationServiceProvider provider)
